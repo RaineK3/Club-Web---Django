@@ -8,6 +8,63 @@ from .forms import VenueForm,EventForm
 from django.http import HttpResponse
 import csv
 
+#for generate pdf stuff
+from django.http import FileResponse
+import io 
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
+
+#import pagination stuff
+from django.core.paginator import Paginator
+
+#generate a PDF File Venue List
+def venue_pdf(request):
+	#create bytestream buffer
+	buf = io.BytesIO()
+	#create a canvas
+	c = canvas.Canvas(buf, pagesize=letter, bottomup = 0)
+	#create text object 
+	textob = c.beginText()
+	textob.setTextOrigin(inch,inch)
+	textob.setFont("Helvetica", 14)
+
+	#add some line of text
+	# lines = [
+	# "This is line 1",
+	# "Thid is line 2",
+	# "This is line 3",
+	# "This is line 4"]
+
+	#designate the model
+	venues = Venue.objects.all()
+
+	#create blank list
+	lines = []
+
+	for venue in venues:
+		lines.append(venue.name)
+		lines.append(venue.address)
+		lines.append(venue.zip_code)
+		lines.append(venue.phone)
+		lines.append(venue.web)
+		lines.append(venue.email_address)
+		lines.append(" ")
+
+	#loop
+	for line in lines:
+		textob.textLine(line)
+
+
+	#Finish up
+	c.drawText(textob)
+	c.showPage()
+	c.save()
+	buf.seek(0)
+
+	#return something
+	return FileResponse(buf, as_attachment= True, filename="venue.pdf")
+
 #generate csv file venue list
 def venue_csv(request):
 	response = HttpResponse(content_type = 'text/csv')
@@ -111,13 +168,26 @@ def search_venues(request):
 
 def show_venue(request,  venue_id):
 	venue = Venue.objects.get(pk = venue_id)
+
+
 	return render(request, 'events/show_venue.html',
 		{'venue': venue})
 
 def list_venues(request):
-	venue_list = Venue.objects.all().order_by('name')
+	#venue_list = Venue.objects.all().order_by('name')
+	venue_list = Venue.objects.all()
+
+	#set up pagination
+	p = Paginator(Venue.objects.all(), 	1)
+	page = request.GET.get('page')
+	venues = p.get_page(page)
+
+	nums = "a" * venues.paginator.num_pages
+
 	return render(request, 'events/venue.html',
-		{'venue_list': venue_list})
+		{'venue_list': venue_list,
+		'venues': venues,
+		'nums': nums })
 
 def add_venue(request):
 	submitted = False
