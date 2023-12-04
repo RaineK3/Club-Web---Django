@@ -4,7 +4,7 @@ from calendar import HTMLCalendar
 from datetime import datetime
 from django.http import HttpResponseRedirect
 from .models import Event,Venue
-from .forms import VenueForm,EventForm
+from .forms import VenueForm,EventForm, EventFormAdmin
 from django.http import HttpResponse
 import csv
 
@@ -119,12 +119,25 @@ def delete_event(request, event_id):
 def add_event(request):
 	submitted = False
 	if request.method == "POST":
-		form = EventForm(request.POST)
-		if form.is_valid():
-			form.save()
-			return HttpResponseRedirect('/add_event?submitted=Ture')
+		if request.user.is_superuser:
+			form = EventFormAdmin(request.POST)
+			if form.is_valid():
+				form.save()
+				return HttpResponseRedirect('/add_event?submitted=Ture')
+		else:
+			form = EventForm(request.POST)
+			if form.is_valid():
+				# form.save()
+				event = form.save(commit = False)
+				event.manager = request.user 
+				event.save()
+				return HttpResponseRedirect('/add_event?submitted=Ture')
 	else:
-		form = EventForm
+		#just going to the page, not submitting
+		if request.user.is_superuser:
+			form = EventFormAdmin
+		else: 
+			form = EventForm
 		if 'submitted' in request.GET:
 			submitted = True
 	
@@ -133,7 +146,10 @@ def add_event(request):
 
 def update_event(request, event_id):
 	event = Event.objects.get(pk=event_id)
-	form = EventForm(request.POST or None, instance = event)
+	if request.user.is_superuser:
+		form = EventFormAdmin(request.POST or None, instance = event)
+	else:
+		form = EventForm(request.POST or None, instance = event)
 	if form.is_valid():
 		form.save()
 		return redirect('list-events')
@@ -194,7 +210,10 @@ def add_venue(request):
 	if request.method == "POST":
 		form = VenueForm(request.POST)
 		if form.is_valid():
-			form.save()
+			#form.save()
+			venue = form.save(commit = False)
+			venue.owner = request.user.id #logged in user
+			venue.save()			# form.save()
 			return HttpResponseRedirect('/add_venue?submitted=Ture')
 	else:
 		form = VenueForm
