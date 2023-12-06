@@ -1,17 +1,27 @@
 {% extends 'events/base.html' %}
 
 {% block content %}
-	<center>
-	<h1>Hello {{name}}! Events for {{month}} {{year}}</h1>
+	<div class="card">
+	  <div class="card-header">
+	    {% if searched %}
+			You searched for...{{ searched }}
+		{% else %}
+			Search Events..
+		{% endif %}
+		<br/>
+	  </div>
+	  <div class="card-body">
+		 <form method="post" action="{% url 'search-events' %}" role="search">
+	        {% csrf_token %}
+	        <input class="form-control me-2" type="search" placeholder="Search Venues" name="searched" aria-label="Search"><br/>
+	        <button class="btn btn-outline-secondary" type="submit">Search</button>
+	     </form>
+	   </div>
+	  </div> 
+	  <br/>
+	
 
-	As of {{time}}<br/><br/>
-
-	{{ cal | safe }}<br/><br/>
-	</center>
-
-	<h3>Events for this Month...</h3>
-	{% if event_list %}
-		{% for event in event_list %}
+		{% for event in events %}
 			<div class="card">
 			  <div class="card-header">
 			    <strong>{{ event }}</strong>
@@ -44,14 +54,9 @@
 				 {% endif %}
 			  {% endif %}
 			</div>
+
 			
-		<br/><br/>
+			<br/><br/>
 		{% endfor %}
-	{% else %}
-		There are no events for this month.
-	{% endif %}
-	<center>
-	Copyright (c) {{current_year}}
-	</center>
-	
+
 {% endblock %}
